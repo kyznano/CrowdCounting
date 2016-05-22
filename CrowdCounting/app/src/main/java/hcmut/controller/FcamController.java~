@@ -1,0 +1,222 @@
+package hcmut.controller;
+
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.hardware.Camera;
+import android.media.AudioManager;
+import android.media.ExifInterface;
+import android.net.Uri;
+import android.os.Environment;
+import android.widget.Toast;
+
+import org.opencv.android.Utils;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfDouble;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import hcmut.UI.Cam;
+import hcmut.UI.CustomDialog;
+import hcmut.aclab.crowd.counting.R;
+import hcmut.activity.CountingMain;
+import hcmut.activity.FcamService;
+import hcmut.data.Const;
+import hcmut.framework.BasicFlow;
+import hcmut.framework.data.RequestFW;
+import hcmut.framework.lib.AppLibFile;
+import hcmut.framework.lib.AppLibGeneral;
+
+/**
+ * Created by minh on 09/08/2015.
+ */
+public class FcamController extends BasicFlow {
+    private CountingMain fcam;
+
+    static{ System.loadLibrary("opencv_java3"); }
+
+    public FcamController(CountingMain fcam) {
+        super(fcam, BasicFlow.CONTROLLER);
+        this.fcam = fcam;
+        initController();
+    }
+
+    private void initController() {
+    }
+
+    @Override
+    public void listenToRequest(RequestFW request) {
+        switch (request.getCode()) {
+            case Const.REQ_TAKE_PICTURE_NOW:
+                String savePath = AppLibFile.getExternalStoragePath(Const.PICTURE_FOLDER);
+                if(AppLibGeneral.isEmptyString(savePath)) {
+                    String picture_path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsolutePath();
+                    picture_path += picture_path.endsWith(File.separator)?"":File.separator;
+                    picture_path += fcam.getString(R.string.app_name);
+                    AppLibFile.createDirIfNotExists(picture_path);
+                    savePath = picture_path;
+                }
+                File pictureFileDir = new File(savePath);
+                if (!pictureFileDir.exists() && !pictureFileDir.mkdirs()) {
+                    Toast.makeText(fcam, "Cannot create directory to save picture!",
+                            Toast.LENGTH_LONG).show();
+                    break;
+                }
+                takePicture(savePath);
+                break;
+            default:
+                break;
+        }
+    }
+
+
+    public Bitmap extractFeature(Bitmap input) {
+        // resize to desired size
+        int kernel_size = 31;
+        int width = input.getWidth();
+        int height = input.getHeight();
+        Bitmap resized = Bitmap.createScaledBitmap(input, width, height, true);
+        // convert to Mat (OpenCV datatype)
+        Mat img = new Mat();
+        Utils.bitmapToMat(resized, img);
+        // convert to grayscale
+        Imgproc.cvtColor(img, img, Imgproc.COLOR_BGR2GRAY);
+        // histogram equalization
+        Imgproc.equalizeHist(img, img);
+
+        // generate Gabor kernel
+        double sig = 15.5, th = 0, lm = 15.5, gm = 1, ps = 0;
+        Mat kernel = Imgproc.getGaborKernel(new Size(kernel_size, kernel_size), sig, th, lm, gm, ps, CvType.CV_32F);
+        //Mat resultMat = new Mat();
+        Imgproc.filter2D(img, img, CvType.CV_32F, kernel);
+        Core.MinMaxLocResult minMax = Core.minMaxLoc(img);
+        Core.subtract(img, new MatOfDouble(minMax.minVal), img);
+        Core.multiply(img, new MatOfDouble(255f/(minMax.maxVal - minMax.minVal)), img);
+        img.convertTo(img, CvType.CV_8UC1);
+
+        //Imgproc.cvtColor(imgToProcess, imgToProcess, Imgproc.COLOR_BGR2GRAY);
+        //Imgproc.cvtColor(imgToProcess, imgToProcess, Imgproc.COLOR_GRAY2RGBA, 4);
+
+        /*
+        Mat dstMat = new Mat(Const.IMG_RESIZE_WIDTH, Const.IMG_RESIZE_HEIGHT, CvType.CV_8UC1);
+        //Mat gaborKernel = new Mat(24, 24, CvType.CV_8UC1);
+        //Imgproc.filter2D(srcMat, dstMat, -1, gaborKernel);
+
+        Mat matA = new Mat(3,3,CvType.CV_32F,new Scalar(1));
+        Mat matB = new Mat(3,3,CvType.CV_32F,new Scalar(25));
+        Mat ker = new Mat(3,3,CvType.CV_32F);
+        Core.divide(matA, matB, ker);
+        Imgproc.filter2D(srcMat, dstMat, -1, ker);
+        */
+
+        Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(img, result);
+        return result;
+    }
+
+
+    public void takePicture(final String savePath) {
+
+        final Camera cam = fcam.getCamera();
+        final Context context = fcam.getApplicationContext();
+        // get the app settings
+        final boolean isSilent = AppLibGeneral.getConfigurationBoolean(fcam, Const.PREF_SETTINGS, Const.SETTINGS_SILENT_MODE, true);
+        final AudioManager mgr = (AudioManager) fcam.getSystemService(Context.AUDIO_SERVICE);
+        if(isSilent && mgr!=null) {  // turn off the sound
+            //mgr.setStreamMute(AudioManager.STREAM_SYSTEM, true);
+            Cam.disableShutterCompletely(mgr, cam);
+        }
+        cam.takePicture(null, new Camera.PictureCallback() {
+            @Override
+            public void onPictureTaken(byte[] data, Camera camera) {
+                // update floating UI (final tick)
+                fcam.startService(new Intent(context, FcamService.class)
+                        .setFlags(FcamService.FLAG_TAKE_PICTURE_DONE));
+            }
+        }, new Camera.PictureCallback() {
+            @Override
+            public void onPictureTaken(byte[] data, Camera camera) {
+                if (data != null) {
+                    /*Bitmap b = BitmapFactory.decodeByteArray(data, 0, data.length);
+                    b = AppLibFile.ccw(b, Cam.getCameraRotatingAngle(fcam, Camera.CameraInfo.CAMERA_FACING_BACK, camera));
+                    String imgPath = AppLibFile.writeBitmapToExternalStorage(fcam, b, Const.PICTURE_QUALITY, savePath);*/
+
+                    Bitmap b = BitmapFactory.decodeByteArray(data, 0, data.length);
+                    Bitmap bitmapResult = extractFeature(b);
+                    AppLibFile.writeBitmapToExternalStorage(fcam, bitmapResult, Const.PICTURE_QUALITY, savePath);
+
+                    /*  TODO:
+                    *   Convolution
+                    *   Calculate Mean and Variance
+                    *   => Feature vector
+                     */
+
+                    String timeNow = AppLibGeneral.getTimeNow();
+                    String pictureName = timeNow + ".jpg";
+                    String folderPath = savePath;
+                    folderPath += (savePath.endsWith(File.separator))?"":File.separator;
+                    final String imgPath = folderPath + pictureName;
+
+                    try {
+                        FileOutputStream fos = new FileOutputStream(new File(imgPath));
+                        fos.write(data);
+                        fos.close();
+                        // update user gallery
+                        File imgFile = new File(imgPath);
+                        fcam.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(imgFile)));
+                    } catch (Exception error) {
+                        Toast.makeText(context, "Cannot save picture in " + imgPath, Toast.LENGTH_LONG).show();
+                    }
+
+                    // setup image properties
+                    ExifInterface newExif;
+                    try {
+                        int imgOrientation = ExifInterface.ORIENTATION_NORMAL;
+                        switch (Cam.getCameraRotatingAngle(fcam, Camera.CameraInfo.CAMERA_FACING_BACK, camera)) {
+                            case 0:
+                                imgOrientation = ExifInterface.ORIENTATION_NORMAL;
+                                break;
+                            case 90:
+                                imgOrientation = ExifInterface.ORIENTATION_ROTATE_90;
+                                break;
+                            case 180:
+                                imgOrientation = ExifInterface.ORIENTATION_ROTATE_180;
+                                break;
+                            case 270:
+                                imgOrientation = ExifInterface.ORIENTATION_ROTATE_270;
+                                break;
+                            default:
+                                imgOrientation = ExifInterface.ORIENTATION_NORMAL;
+                                break;
+                        }
+                        newExif = new ExifInterface(imgPath);
+                        newExif.setAttribute(ExifInterface.TAG_DATETIME, timeNow);
+                        newExif.setAttribute(ExifInterface.TAG_ORIENTATION, Integer.toString(imgOrientation));
+                        newExif.saveAttributes();
+                    } catch (IOException e) {
+                        // do nothing
+                    }
+
+                    if (isSilent && mgr != null) {
+                        // turn on the sound
+                        //mgr.setStreamMute(AudioManager.STREAM_SYSTEM, false);
+                        Cam.enableSound(mgr);
+                    }
+
+                    CustomDialog customDialog = new CustomDialog(fcam, bitmapResult);
+                    customDialog.DialogProcess().show();
+
+                    //fcam.finishApp();
+                }
+            }
+        });
+    }
+
+}

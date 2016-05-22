@@ -1,0 +1,38 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="hcmut.aclab.crowd.counting">
+    <!--
+    Permission for floating UI
+    -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <!--
+    Permission for using camera (taking picture)
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!--
+    Permission for saving file (picture/image) into external storage
+    -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!--
+    Permission for recording audio, unlock this permission if the app has recording video feature
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    -->
+
+    <!--
+    Only available to the phone having camera
+    -->
+    <uses-feature android:name="android.hardware.camera" />
+
+    <application android:allowBackup="true" android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher" android:theme="@style/AppTheme"
+        android:screenOrientation="portrait">
+
+        <activity android:name="hcmut.activity.CountingMain"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

@@ -1,0 +1,4 @@
+F-Camera 1.0
+* Balloon on screen
+* Take picture without sound (mute)
+* 

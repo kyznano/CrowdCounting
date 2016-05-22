@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Crowd Counting</string>
+    <string name="database_version">1</string>
+    <string name="noti_remove_floating_button">Tap to remove the floating button</string>
+</resources>
