@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 
 import hcmut.aclab.crowd.counting.R;
 import hcmut.activity.CountingMain;
@@ -28,41 +29,59 @@ public class CustomDialog {
     public Dialog DialogProcess() {
                 dialog = new Dialog(cm);
                 dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-                dialog.setContentView(R.layout.imageshow);
-                ImageView image_frame = (ImageView) dialog.findViewById(R.id.image_show);
+
                 if(BITMAP_IMAGE!=null)
                 {
+                    dialog.setContentView(R.layout.imageshow);
+                    ImageView image_frame = (ImageView) dialog.findViewById(R.id.image_show);
                     Drawable d = new BitmapDrawable(cm.getResources(),BITMAP_IMAGE);
                     image_frame.setImageDrawable(d);
                     dialog.getWindow().setBackgroundDrawable(null);
+                    image_frame.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            dialog.dismiss();
+                        }
+                    });
+                    Button back = (Button) dialog.findViewById(R.id.btn_back);
+                    back.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            close();
+                        }
+                    });
+                    back.setWidth((int)(cm.getUI().getScreenWidth()*0.2));
+                    back.setHeight((int)(cm.getUI().getScreenWidth()*0.2));
+
+                    Button send = (Button) dialog.findViewById(R.id.btn_send);
+                    send.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            cm.sendFeature(v);
+                        }
+                    });
+                    send.setWidth((int)(cm.getUI().getScreenWidth()*0.2));
+                    send.setHeight((int)(cm.getUI().getScreenWidth()*0.2));
+
+                } else {
+                    dialog.setContentView(R.layout.settings);
+                    RelativeLayout rel = (RelativeLayout) dialog.findViewById(R.id.rel_settings);
+                    rel.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            close();
+                        }
+                    });
+
                 }
-                image_frame.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dialog.dismiss();
-                    }
-                });
 
-                Button back = (Button) dialog.findViewById(R.id.back);
-                back.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        close();
-                    }
-                });
 
-                Button send = (Button) dialog.findViewById(R.id.send);
-                send.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        cm.sendFeature(v);
-                    }
-                });
 
         return dialog;
     }
 
     public void close() {
+        cm.mCamera.startPreview();
         dialog.dismiss();
     }
 }

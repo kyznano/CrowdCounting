@@ -12,6 +12,7 @@ import android.hardware.Camera;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.ViewGroup;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -48,10 +49,15 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         if(isVisible) {
             int[] pwph = Cam.getBestPreviewSize(mContext, mCamera);
             if(pwph[0] > 0 && pwph[1]>0) {
-                mPreviewWidth = pwph[0];
+                /*mPreviewWidth = pwph[0];
                 mPreviewHeight = pwph[1];
-                mHolder.setFixedSize(mPreviewWidth, mPreviewHeight);
+                mHolder.setFixedSize(mPreviewWidth, mPreviewHeight);*/
+
                 //Toast.makeText(mContext, "w=" + String.valueOf(pwph[0] + ";h=" + String.valueOf(pwph[1])), Toast.LENGTH_LONG).show();
+
+                mPreviewWidth = fcam.getUI().getScreenWidth();
+                mPreviewHeight = fcam.getUI().getScreenHeight();
+                mHolder.setFixedSize(mPreviewWidth, mPreviewHeight);
             }
         }
 
@@ -61,7 +67,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             mPreviewWidth = mPreviewHeight;
             mPreviewHeight = tmp;
         }
-        setLayoutParams(new ViewGroup.LayoutParams(mPreviewWidth, mPreviewHeight));
+        //setLayoutParams(new ViewGroup.LayoutParams(mPreviewWidth, mPreviewHeight));
+        setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         requestLayout();
 
         // set taken picture quality (best quality)
@@ -80,7 +87,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     public void surfaceCreated(SurfaceHolder holder) {
         if(mPreviewWidth>=0 && mPreviewHeight>=0) {
-            mCamera.getParameters().setPreviewSize(mPreviewWidth, mPreviewHeight);
+            //mCamera.getParameters().setPreviewSize(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             mCamera.getParameters().setPreviewFormat(mPreviewFormat);
             //mCamera.setPreviewCallback(new PreviewFrame(fcam, mPreviewFormat, mCamera));
             // The Surface has been created, now tell the camera where to draw the preview.
@@ -125,7 +132,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             // set preview size and make any resize, rotate or
             // reformatting changes here
             if(mPreviewWidth>=0 && mPreviewHeight>=0) {
-                mCamera.getParameters().setPreviewSize(mPreviewWidth, mPreviewHeight);
+                //mCamera.getParameters().setPreviewSize(mPreviewWidth, mPreviewHeight);
                 mCamera.getParameters().setPreviewFormat(mPreviewFormat);
                 //mCamera.setPreviewCallback(new PreviewFrame(fcam, mPreviewFormat, mCamera));
                 // start preview with new settings

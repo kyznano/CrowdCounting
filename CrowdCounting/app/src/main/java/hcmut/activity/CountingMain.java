@@ -6,6 +6,7 @@ import android.hardware.Camera;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.View;
+import android.widget.Button;
 import android.widget.FrameLayout;
 
 import hcmut.UI.Cam;
@@ -29,7 +30,7 @@ public class CountingMain extends FrameworkActivity {
     public static String START_FROM_FLOATING_UI = "START_FROM_FLOATING_UI";
     public static String START_FROM_USER = "START_FROM_USER";
     public static String STOP_SERVICE_FLOATING_UI = "STOP_SERVICE_FLOATING_UI";
-    private Camera mCamera;
+    public Camera mCamera;
     private String mStartFrom = START_FROM_USER;
 
     public Bitmap current_bitmap = null;
@@ -49,6 +50,27 @@ public class CountingMain extends FrameworkActivity {
     protected void onCreate(Bundle savedInstanceState) {
         setContentView(R.layout.screen_app);
         super.onCreate(savedInstanceState);
+    }
+
+    public void settingDialog(View v) {
+        CustomDialog customDialog = new CustomDialog(this, null);
+        customDialog.DialogProcess().show();
+        //fcam.current_dialog = customDialog;
+    }
+
+    private void startPreview() {
+        if(mCamera!=null) {
+            mCamera.startPreview();
+        } else {
+            mCamera = Cam.getCameraInstance();
+            if(mCamera !=null) {
+                final CameraPreview mPreview = new CameraPreview(this, mCamera, true);
+                FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
+                preview.removeAllViews();
+                preview.addView(mPreview);
+                preview.setVisibility(View.VISIBLE);
+            }
+        }
     }
 
     @Override
@@ -87,6 +109,12 @@ public class CountingMain extends FrameworkActivity {
                 FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
                 preview.addView(mPreview);
                 preview.setVisibility(View.VISIBLE);
+
+                Button preference = (Button) findViewById(R.id.btn_preference);
+                preference.bringToFront();
+
+                Button takepic = (Button) findViewById(R.id.btn_takepic);
+                takepic.bringToFront();
 
                 Thread t = new Thread(new Runnable() {
                     @Override
@@ -147,6 +175,7 @@ public class CountingMain extends FrameworkActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        startPreview();
         if(mStartFrom.equals(START_FROM_FLOATING_UI)) {
             // do nothing
         } else if(mStartFrom.equals(START_FROM_USER)) {
@@ -162,13 +191,16 @@ public class CountingMain extends FrameworkActivity {
         if(mCamera!=null) {
             mCamera.release();
             mCamera = null;
-            //Toast.makeText(this, "onPause(): camera is released!", Toast.LENGTH_SHORT).show();
         }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        if(mCamera!=null) {
+            mCamera.release();
+            mCamera = null;
+        }
     }
 
     @Override
