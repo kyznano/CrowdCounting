@@ -6,7 +6,6 @@ import android.graphics.Bitmap;
 import android.hardware.Camera;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Button;
@@ -99,42 +98,27 @@ public class CountingMain extends FrameworkActivity {
         Intent iw = getIntent();
         Bundle extraData = iw.getExtras();
         // take picture immediately and exit the app
-        if(true) {
+        //if(true) {
         //if(iw.getAction().equals(START_FROM_FLOATING_UI)) {
             mStartFrom = START_FROM_FLOATING_UI;
             // Create an instance of Camera
-            mCamera = Cam.getCameraInstance();
+            startPreview();
+
+            Button preference = (Button) findViewById(R.id.btn_preference);
+            preference.bringToFront();
+
+            Button takepic = (Button) findViewById(R.id.btn_takepic);
+            takepic.bringToFront();
+
+            /*mCamera = Cam.getCameraInstance();
             if(mCamera !=null) {
-                /*
-                final long time_start = extraData.getLong(FcamService.KEY_TIME_STARTED, System.currentTimeMillis());
-                int defaultRamAvailable = Math.round((float) AppLibGeneral.getAvailableMemory(getApplicationContext()) / 5) * 5;
-                final int ramAvailable = extraData.getInt(FcamService.KEY_RAM_AVAILABLE, defaultRamAvailable);
-                final boolean isInBackground = AppLibGeneral.getConfigurationBoolean(getApplicationContext(),
-                        Const.PREF_SETTINGS, Const.SETTINGS_ACTIVITY_IS_STILL_IN_BACKGROUND, false);
-                */
-
-                /*mCamera.setFaceDetectionListener(new Camera.FaceDetectionListener() {
-                    @Override
-                    public void onFaceDetection(Camera.Face[] faces, Camera camera) {
-                        Log.d("FaceDetection", "face detected: " + faces.length +
-                                " Face 1 Location X: " + faces[0].rect.centerX() +
-                                "Y: " + faces[0].rect.centerY());
-                    }
-                });*/
-
-                //Toast.makeText(getApplicationContext(), "START_FROM_FLOATING_UI", Toast.LENGTH_LONG).show();
-
                 // Create our Preview view and set it as the content of our activity.
                 final CameraPreview mPreview = new CameraPreview(this, mCamera, true);
                 FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
                 preview.addView(mPreview);
                 preview.setVisibility(View.VISIBLE);
 
-                Button preference = (Button) findViewById(R.id.btn_preference);
-                preference.bringToFront();
 
-                Button takepic = (Button) findViewById(R.id.btn_takepic);
-                takepic.bringToFront();
 
                 Thread t = new Thread(new Runnable() {
                     @Override
@@ -142,10 +126,6 @@ public class CountingMain extends FrameworkActivity {
                         while(!mPreview.isStarted()) {
                             SystemClock.sleep(50);
                         }
-                        //long time_end = System.currentTimeMillis();
-                        //long deltaTime = time_end - time_start;
-                        //getDatabase().insertTimeEff(new TimeEff(String.valueOf(ramAvailable), String.valueOf(deltaTime), isInBackground));
-                        //takePic();
                     }
                 });
                 t.start();
@@ -153,8 +133,8 @@ public class CountingMain extends FrameworkActivity {
                 // set application settings
                 AppLibGeneral.setConfigurationBoolean(getApplicationContext(),
                         Const.PREF_SETTINGS, Const.SETTINGS_ACTIVITY_IS_STILL_IN_BACKGROUND, true);
-            }
-        } else if(iw.getAction().equals(STOP_SERVICE_FLOATING_UI)) {
+            }*/
+        /*} else if(iw.getAction().equals(STOP_SERVICE_FLOATING_UI)) {
             mStartFrom = STOP_SERVICE_FLOATING_UI;
             //Toast.makeText(this, "STOP_SERVICE_FLOATING_UI", Toast.LENGTH_LONG).show();
             stopFloatingUI();
@@ -162,7 +142,7 @@ public class CountingMain extends FrameworkActivity {
             mStartFrom = START_FROM_USER;
             // startService(new Intent(getApplicationContext(), FcamService.class)
             //        .setFlags(FcamService.FLAG_START_NEW_FLOATING_UI));
-        }
+        }*/
     }
 
 
@@ -251,14 +231,14 @@ public class CountingMain extends FrameworkActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        startPreview();
+        /*startPreview();
         if(mStartFrom.equals(START_FROM_FLOATING_UI)) {
             // do nothing
         } else if(mStartFrom.equals(START_FROM_USER)) {
             finishApp();
         } else if(mStartFrom.equals(STOP_SERVICE_FLOATING_UI)) {
             finishApp();
-        }
+        }*/
     }
 
     @Override
