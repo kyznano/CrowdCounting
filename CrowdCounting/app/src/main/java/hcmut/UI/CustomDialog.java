@@ -1,17 +1,21 @@
 package hcmut.UI;
 
 import android.app.Dialog;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
 import hcmut.aclab.crowd.counting.R;
 import hcmut.activity.CountingMain;
+import hcmut.data.Const;
+import hcmut.framework.lib.AppLibGeneral;
 
 /**
  * Created by minh on 19/05/2016.
@@ -32,6 +36,8 @@ public class CustomDialog {
 
                 if(BITMAP_IMAGE!=null)
                 {
+                    cm.current_bitmap = BITMAP_IMAGE;
+
                     dialog.setContentView(R.layout.imageshow);
                     ImageView image_frame = (ImageView) dialog.findViewById(R.id.image_show);
                     Drawable d = new BitmapDrawable(cm.getResources(),BITMAP_IMAGE);
@@ -65,23 +71,46 @@ public class CustomDialog {
 
                 } else {
                     dialog.setContentView(R.layout.settings);
-                    RelativeLayout rel = (RelativeLayout) dialog.findViewById(R.id.rel_settings);
-                    rel.setOnClickListener(new View.OnClickListener() {
+                    RelativeLayout layout_settings = (RelativeLayout) dialog.findViewById(R.id.rel_settings);
+
+                    final EditText server_address = (EditText) dialog.findViewById(R.id.server_address);
+                    final EditText server_port = (EditText) dialog.findViewById(R.id.server_port);
+
+                    /*
+                    layout_settings.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            close();
+                            //Toast.makeText(cm, "Hello", Toast.LENGTH_LONG).show();
+                            close();                        }
+                    });
+                    */
+
+                    dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                        @Override
+                        public void onDismiss(DialogInterface dialog) {
+                            // save Configuration
+                            AppLibGeneral.setConfigurationString(cm, Const.PREF_SETTINGS, Const.SETTINGS_SERVER_ADDRESS, server_address.getText().toString().trim());
+                            AppLibGeneral.setConfigurationString(cm, Const.PREF_SETTINGS, Const.SETTINGS_SERVER_PORT, server_port.getText().toString().trim());
                         }
                     });
 
+                    Button btnGallery = (Button) dialog.findViewById(R.id.btn_gallery);
+                    btnGallery.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            cm.loadImageFromGallery(v);
+                        }
+                    });
+
+                    server_address.setText(AppLibGeneral.getConfigurationString(cm, Const.PREF_SETTINGS, Const.SETTINGS_SERVER_ADDRESS, Const.SETTINGS_SERVER_ADDRESS_DEFAULT));
+                    server_port.setText(AppLibGeneral.getConfigurationString(cm, Const.PREF_SETTINGS, Const.SETTINGS_SERVER_PORT, Const.SETTINGS_SERVER_PORT_DEFAULT));
                 }
-
-
 
         return dialog;
     }
 
     public void close() {
-        cm.mCamera.startPreview();
+        cm.startPreview();
         dialog.dismiss();
     }
 }

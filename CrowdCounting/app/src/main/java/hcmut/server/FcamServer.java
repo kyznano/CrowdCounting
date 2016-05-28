@@ -1,7 +1,6 @@
 package hcmut.server;
 
 import android.os.AsyncTask;
-import android.os.SystemClock;
 
 import hcmut.activity.CountingMain;
 import hcmut.data.Const;
@@ -44,14 +43,20 @@ public class FcamServer extends BasicFlow {
 
             @Override
             protected String doInBackground(String... params) {
-                SystemClock.sleep(AppLibGeneral.randInt(2000, 4000));
+                //SystemClock.sleep(AppLibGeneral.randInt(2000, 4000));
 
                 serverResponse = "";
 
                 try {
                     // sending request to url
                     String url = FcamServerService.generateURL(fcam);
+
+                    //Toast.makeText(fcam, "url = " + url, Toast.LENGTH_LONG).show();
+
                     String postParam = FcamServerService.generatePostParams("feature", (String) request.getData());
+
+                    //Toast.makeText(fcam, "post = " + postParam, Toast.LENGTH_LONG).show();
+
                     serverResponse = FcamServerService.requestUrl(url, postParam);
                 } catch (Exception e) {
                     // TODO Error occurs while sending request to web service

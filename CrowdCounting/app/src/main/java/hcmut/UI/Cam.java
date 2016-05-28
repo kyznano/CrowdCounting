@@ -6,6 +6,7 @@ import android.content.Context;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.media.AudioManager;
+import android.util.Log;
 import android.view.Surface;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class Cam {
         }
         catch (Exception e){
             // Camera is not available (in use or does not exist)
+            Log.e("Camera", "Cam > getCameraInstance() | Cause = " + e.getCause() + " | Message = " + e.getMessage());
         }
         return c; // returns null if camera is unavailable
     }

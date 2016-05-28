@@ -1,13 +1,19 @@
 package hcmut.activity;
 
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.hardware.Camera;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.Toast;
+
+import java.io.File;
 
 import hcmut.UI.Cam;
 import hcmut.UI.CameraPreview;
@@ -19,6 +25,7 @@ import hcmut.controller.FcamDatabase;
 import hcmut.data.Const;
 import hcmut.framework.FrameworkActivity;
 import hcmut.framework.data.RequestFW;
+import hcmut.framework.lib.AppLibFile;
 import hcmut.framework.lib.AppLibGeneral;
 import hcmut.server.FcamServer;
 
@@ -58,18 +65,31 @@ public class CountingMain extends FrameworkActivity {
         //fcam.current_dialog = customDialog;
     }
 
-    private void startPreview() {
+    public void startPreview() {
+        Toast.makeText(this, "starting preview", Toast.LENGTH_SHORT).show();
         if(mCamera!=null) {
             mCamera.startPreview();
         } else {
             mCamera = Cam.getCameraInstance();
             if(mCamera !=null) {
+                //mCamera.unlock();
                 final CameraPreview mPreview = new CameraPreview(this, mCamera, true);
                 FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
                 preview.removeAllViews();
                 preview.addView(mPreview);
                 preview.setVisibility(View.VISIBLE);
+            } else {
+                Toast.makeText(this, "mCamera is null after Cam.getCameraInstance(): CountingMain.java > startPreview()", Toast.LENGTH_SHORT).show();
             }
+        }
+    }
+
+    public void releaseCamera(){
+        Toast.makeText(this, "releasing preview", Toast.LENGTH_SHORT).show();
+        if(mCamera!=null) {
+            //mCamera.lock();
+            mCamera.release();
+            mCamera = null;
         }
     }
 
@@ -145,9 +165,65 @@ public class CountingMain extends FrameworkActivity {
         }
     }
 
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        //super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode == RESULT_OK) {
+            switch (requestCode) {
+                case Const.ACTIVITY_RESULT_GALLERY_CODE:
+                    if(data!=null) {
+                        Uri selectedImage = data.getData();
+                        String[] filePathColumn = { MediaStore.Images.Media.DATA };
+
+                        Cursor cursor = getContentResolver().query(selectedImage,
+                                filePathColumn, null, null, null);
+                        cursor.moveToFirst();
+
+                        int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
+                        String picturePath = cursor.getString(columnIndex);
+                        cursor.close();
+
+                        File pf = new File(picturePath);
+                        if(!pf.canRead()) {
+                            Toast.makeText(this, "Failed to read image: CountingMain.java > onActivityResult()", Toast.LENGTH_LONG).show();
+                            break;
+                        }
+
+                        if(AppLibGeneral.isImageFile(picturePath)) {
+                            int largerDimension = this.getUI().getScreenHeight()>this.getUI().getScreenWidth()?this.getUI().getScreenHeight():this.getUI().getScreenWidth();
+                            Bitmap cb = AppLibFile.getBitmapFromPath(picturePath, largerDimension, largerDimension);
+                            Bitmap scaledBitmap = Bitmap.createScaledBitmap(cb, cb.getWidth(), cb.getHeight(),true);
+                            CustomDialog customDialog = new CustomDialog(this, scaledBitmap);
+                            customDialog.DialogProcess().show();
+                            this.current_dialog = customDialog;
+                        }
+                        else {
+                            Toast.makeText(this, "Not image file: CountingMain.java > onActivityResult()", Toast.LENGTH_LONG).show();
+                        }
+
+                        startPreview();
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+        } else if(resultCode == RESULT_CANCELED) {
+
+        } else {
+
+        }
+    }
+
     private void stopFloatingUI() {
         // startService(new Intent(getApplicationContext(), FcamService.class)
         //        .setFlags(FcamService.FLAG_STOP_FLOATING_UI));
+    }
+
+    // press button
+    public void loadImageFromGallery(View v) {
+        mUI.sendRequest(new RequestFW(Const.REQ_GALLERY));
     }
 
     public void sendFeature(View v) {
@@ -188,28 +264,19 @@ public class CountingMain extends FrameworkActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if(mCamera!=null) {
-            mCamera.release();
-            mCamera = null;
-        }
+        //releaseCamera();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if(mCamera!=null) {
-            mCamera.release();
-            mCamera = null;
-        }
+        //releaseCamera();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if(mCamera!=null) {
-            mCamera.release();
-            mCamera = null;
-        }
+        releaseCamera();
     }
 
     @Override

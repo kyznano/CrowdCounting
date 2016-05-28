@@ -71,7 +71,7 @@ public class FcamUI extends BasicFlow {
     @Override
     public void listenToResponse(ResponseFW response) {
         Toast.makeText(fa, (String)response.getData(), Toast.LENGTH_LONG).show();
-        fa.mCamera.startPreview();
+        fa.startPreview();
     }
 
 }

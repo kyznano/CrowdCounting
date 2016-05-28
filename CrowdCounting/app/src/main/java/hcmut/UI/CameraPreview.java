@@ -31,7 +31,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     private int mPreviewWidth = 0;
     private int mPreviewHeight = 0;
-    private int mPreviewFormat = ImageFormat.YV12;
+    private static final int mPreviewFormat = ImageFormat.YV12;
 
     public CameraPreview(CountingMain fcam, Camera camera, boolean isVisible) {
         super(fcam);
@@ -88,7 +88,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     public void surfaceCreated(SurfaceHolder holder) {
         if(mPreviewWidth>=0 && mPreviewHeight>=0) {
             //mCamera.getParameters().setPreviewSize(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-            mCamera.getParameters().setPreviewFormat(mPreviewFormat);
+            mCamera.getParameters().setPreviewFormat(CameraPreview.mPreviewFormat);
             //mCamera.setPreviewCallback(new PreviewFrame(fcam, mPreviewFormat, mCamera));
             // The Surface has been created, now tell the camera where to draw the preview.
             try {
@@ -100,13 +100,14 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 e.printStackTrace();
             }
         } else {
-            Toast.makeText(mContext, "surfaceCreated: pwph < 0", Toast.LENGTH_SHORT).show();
+            Toast.makeText(mContext, "Error at: CameraPreview > surfaceCreated()", Toast.LENGTH_SHORT).show();
         }
     }
 
     public void surfaceDestroyed(SurfaceHolder holder) {
         // empty. Take care of releasing the Camera preview in your activity.
         if(mCamera!=null) {
+            //mCamera.stopPreview();
             mCamera.release();
             mCamera = null;
         }

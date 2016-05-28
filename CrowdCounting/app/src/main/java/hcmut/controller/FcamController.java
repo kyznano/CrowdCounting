@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Matrix;
 import android.hardware.Camera;
 import android.media.AudioManager;
 import android.media.ExifInterface;
@@ -12,6 +11,9 @@ import android.net.Uri;
 import android.os.Environment;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
@@ -23,6 +25,7 @@ import org.opencv.imgproc.Imgproc;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import hcmut.UI.Cam;
 import hcmut.UI.CustomDialog;
@@ -80,6 +83,15 @@ public class FcamController extends BasicFlow {
                 Toast.makeText(fcam, "Feature vector = " + fcam.current_feature, Toast.LENGTH_LONG).show();
                 sendRequest(request);
                 break;
+
+            case Const.REQ_GALLERY:
+                Intent galleryIntent = new Intent(
+                        Intent.ACTION_PICK,
+                        android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                fcam.releaseCamera();
+                fcam.startActivityForResult(galleryIntent, Const.ACTIVITY_RESULT_GALLERY_CODE);
+                break;
+
             default:
                 break;
         }
@@ -104,6 +116,18 @@ public class FcamController extends BasicFlow {
         return result;
     }
 
+    private String toJSON(double[] vector) throws JSONException{
+        ArrayList<Double> arrayList = new ArrayList<Double>();
+        for (double value: vector) {
+            arrayList.add(value);
+        }
+
+        JSONObject jsonObject = new JSONObject();
+        JSONArray jsonArray = new JSONArray(arrayList);
+        jsonObject.put("features", jsonArray);
+        return jsonObject.toString();
+    }
+
     public String extractFeature(Bitmap input) {
         // resize to desired size
         int kernel_size = Const.KERNEL_SIZE;
@@ -116,7 +140,15 @@ public class FcamController extends BasicFlow {
         // convert to grayscale
         Imgproc.cvtColor(img, img, Imgproc.COLOR_BGR2GRAY);
         // histogram equalization
-        Imgproc.equalizeHist(img, img);
+        //Imgproc.equalizeHist(img, img);
+
+        // scale img to double 0->1
+
+        img.convertTo(img, CvType.CV_32F);
+        Core.MinMaxLocResult minMax = Core.minMaxLoc(img);
+        Core.subtract(img, new MatOfDouble(minMax.minVal), img);
+        Core.multiply(img, new MatOfDouble(1f/(minMax.maxVal - minMax.minVal)), img);
+
 
         // generate Gabor kernel
         // params
@@ -131,9 +163,12 @@ public class FcamController extends BasicFlow {
         int count = 0;
         for(int t = 0; t < theta.length; t++) {
             for(int l = 0; l < lambd.length; l++) {
-                sigma = lambd[l] * kernel_size;
+                sigma = lambd[l] * kernel_size/2;
                 Mat gaborKernel = Imgproc.getGaborKernel(new Size(kernel_size, kernel_size),
                         sigma, theta[t], lambd[l], gamma, psi, CvType.CV_32F);
+                        
+                Core.multiply(gaborKernel, new MatOfDouble(1f/(2*Math.PI*(sigma*sigma))), gaborKernel);  
+                        
                 Mat imgAtKernel = img.clone();
                 imgAtKernel.convertTo(imgAtKernel, CvType.CV_32F);
                 Imgproc.filter2D(imgAtKernel, imgAtKernel, CvType.CV_32F, gaborKernel);
@@ -192,13 +227,24 @@ public class FcamController extends BasicFlow {
         /*Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(img, result);
         return result;*/
-        return double2string(vector);
+
+        String featureJsonObject = "";
+        try {
+            featureJsonObject = toJSON(vector);
+        }catch (JSONException e){
+            // Catch the exception and handle it
+        }
+
+        return featureJsonObject;
+
+        //return double2string(vector);
     }
 
 
     public void takePicture(final String savePath) {
 
         final Camera cam = fcam.getCamera();
+
         final Context context = fcam.getApplicationContext();
         // get the app settings
         final boolean isSilent = AppLibGeneral.getConfigurationBoolean(fcam, Const.PREF_SETTINGS, Const.SETTINGS_SILENT_MODE, true);
@@ -281,12 +327,15 @@ public class FcamController extends BasicFlow {
                         Cam.enableSound(mgr);
                     }
 
-                    Matrix matrix = new Matrix();
-                    matrix.postRotate(90);
-                    Bitmap cb = BitmapFactory.decodeFile(imgPath);
-                    Bitmap scaledBitmap = Bitmap.createScaledBitmap(cb, cb.getWidth(), cb.getHeight(),true);
-                    Bitmap rotatedBitmap = Bitmap.createBitmap(scaledBitmap , 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
-                    CustomDialog customDialog = new CustomDialog(fcam, rotatedBitmap);
+                    //Matrix matrix = new Matrix();
+                    //matrix.postRotate(90);
+
+                    int largerDimension = fcam.getUI().getScreenHeight()>fcam.getUI().getScreenWidth()?fcam.getUI().getScreenHeight():fcam.getUI().getScreenWidth();
+                    Bitmap cb = AppLibFile.getBitmapFromPath(imgPath, largerDimension, largerDimension);
+
+                    //Bitmap scaledBitmap = Bitmap.createScaledBitmap(cb, cb.getWidth(), cb.getHeight(),true);
+                    //Bitmap rotatedBitmap = Bitmap.createBitmap(scaledBitmap , 0, 0, scaledBitmap.getWidth(), scaledBitmap.getHeight(), matrix, true);
+                    CustomDialog customDialog = new CustomDialog(fcam, cb);
                     customDialog.DialogProcess().show();
                     fcam.current_dialog = customDialog;
 

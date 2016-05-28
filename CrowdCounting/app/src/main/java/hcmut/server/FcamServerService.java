@@ -54,6 +54,8 @@ public class FcamServerService {
         String server_port = AppLibGeneral.getConfigurationString(context, Const.PREF_SETTINGS, Const.SETTINGS_SERVER_PORT, Const.SETTINGS_SERVER_PORT_DEFAULT);
         String server = server_address + ":" + server_port;
         return generateURL("http:/", server);
+
+        //return "http://192.168.1.157:2000";
     }
 
     // https://ihofmann.wordpress.com/2013/01/23/android-sending-post-requests-with-parameters/
